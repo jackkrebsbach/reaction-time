@@ -1,0 +1,414 @@
+---
+title: "part-2"
+author: "Jack Krebsbach"
+date: "10/20/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+# Setup 
+```{r}
+require("knitr")
+rm(list =ls())
+gc()
+```
+
+
+## Load Libraries
+
+```{r, echo = FALSE}
+library(ggplot2)
+library(pander)
+library(tidyverse)
+library(viridis)
+```
+
+## Define Standard Error Function:
+```{r}
+
+std <- function(x) sd(x)/sqrt(length(x))
+
+```
+
+
+## Meditation Analysis
+```{r}
+data <- "data/meditation.csv" %>%
+  read_csv() %>%
+  mutate_if(is.character,as.factor) %>%
+  select(-c(average))
+
+
+test <- data %>%
+  pivot_longer(!initial_hr & !final_hr, names_to = "trial", values_to = "reaction_time")
+  
+(test)
+  
+df <- test %>%
+  group_by(trial) %>%
+  summarise(mean = ave(reaction_time), std = std(reaction_time))   %>% unique()-> out
+
+
+ggplot(df, aes(x = trial , y = mean, fill= trial, label = paste0('\nAVG: ', round(mean, 3),"\n STD: ", round(std, 3), "\n"))) +
+  geom_bar(position=position_dodge(), stat="identity") +
+  geom_errorbar(aes(ymin=mean-std, ymax=mean+std, width=.5))  +
+    geom_text(nudge_y = 0.05, size = 3) +
+  # facet_wrap(~Force, drop = FALSE, strip.position = 'bottom') +
+    xlab("Trial (before vs after)") + ylab("Average Reaction Time")  +
+   theme( axis.text.x=element_blank(),
+        axis.ticks.x=element_blank())
+```
+
+
+# Two tailed Paired ttest for force tracking left and right
+```{r}
+(data)
+
+res <- t.test(data$initial_rt, data$final_rt, paired = TRUE, alternative = 'greater')
+pander(res)
+```
+
+
+
+
+## Meditation Analysis
+```{r}
+
+data <- "data/exercise.csv" %>%
+  read_csv() %>%
+  mutate_if(is.character,as.factor) %>%
+  select(-c(average))
+
+test <- data %>%
+  pivot_longer(!initial_hr & !final_hr, names_to = "trial", values_to = "reaction_time")
+  
+(test)
+  
+df <- test %>%
+  group_by(trial) %>%
+  summarise(mean = ave(reaction_time), std = std(reaction_time)) %>% unique()-> out
+
+
+ggplot(df, aes(x = trial , y = mean, fill= trial, label = paste0('\nAVG: ', round(mean, 3),"\n STD: ", round(std, 3), "\n"))) +
+  geom_bar(position=position_dodge(), stat="identity") +
+  geom_errorbar(aes(ymin=mean-std, ymax=mean+std, width=.5))  +
+    geom_text(nudge_y = 0.05, size = 3) +
+  # facet_wrap(~Force, drop = FALSE, strip.position = 'bottom') +
+    xlab("Trial (before vs after)") + ylab("Average Reaction Time")  +
+   theme( axis.text.x=element_blank(),
+        axis.ticks.x=element_blank())
+```
+
+
+
+
+# Two tailed Paired ttest for force tracking left and right
+```{r}
+(data)
+
+res <- t.test(data$initial_rt, data$final_rt, paired = TRUE, alternative = 'greater')
+pander(res)
+```
+
+
+
+
+# Comparing groups
+
+```{r}
+ex <- "data/exercise.csv" %>%
+  read_csv() %>%
+  mutate_if(is.character, as.factor) %>%
+  select(-c(average, initial_hr, final_hr)) %>%
+  mutate( diff = abs(final_rt - initial_rt)) %>%
+  mutate( group = 'exercise' ) %>%
+  select(c(group, diff))
+
+med <- "data/meditation.csv" %>%
+  read_csv() %>%
+  mutate_if(is.character,as.factor) %>%
+  select(-c(average, initial_hr, final_hr)) %>%
+  mutate( diff = abs(final_rt - initial_rt)) %>%
+  mutate( group = 'mediation' ) %>%
+  select(c(group, diff))
+
+df <- ex %>%
+  bind_rows(med) %>%
+  group_by(group) %>%
+  summarise(mean = ave(diff), std = std(diff)) %>%
+  unique()-> out
+
+
+
+ggplot(df, aes(x = group , y = mean, fill= group, label = paste0('\nAVG: ', round(mean, 3),"\n STD: ", round(std, 3), "\n"))) +
+  geom_bar(position=position_dodge(), stat="identity") +
+  geom_errorbar(aes(ymin=mean-std, ymax=mean+std, width=.5))  +
+    geom_text(nudge_y = 0.012, size = 3) +
+  # facet_wrap(~Force, drop = FALSE, strip.position = 'bottom') +
+    xlab("Group") + ylab("Average Difference in Reaction Time (s)")  +
+   theme( axis.text.x=element_blank(),
+        axis.ticks.x=element_blank())
+
+
+```
+
+
+
+# Two tailed t test comparing reaction time
+```{r}
+res <- t.test(ex$diff, med$diff, paired = FALSE,  alternative = 'two.sided')
+pander(res)
+```
+
+
+
+
+## Average error for force coupling
+
+## Group testing of BPM of different forces 
+```{r}
+data <- "./part2/timing.csv" %>%
+  read_csv() %>%
+  mutate_if(is.character,as.factor) %>%
+  mutate(BPM = paste(BPM, 'BPM')) %>% select(-mean)
+
+data$BPM <- factor(data$BPM, levels=c('30 BPM','60 BPM','120 BPM'))
+
+SMALL_FORCE <- 45
+LARGE_FORCE <- 145
+
+
+rf <- data %>% select(-c(Subject)) %>% pivot_longer(!Force & !BPM) %>%rowwise() %>% select(-name)
+rf
+# rf %>%  mutate(rms_err = case_when(
+#   Force == as.factor('small') ~ sqrt( sum( (c(f1,f2,f3,f4,f5) - SMALL_FORCE)**2)/ 5),
+#   Force == as.factor('large') ~ sqrt( sum( (c(f1,f2,f3,f4,f5) - LARGE_FORCE)**2)/ 5),
+#   TRUE ~ 5
+#   )) -> sum
+
+rf
+
+rf %>%  mutate(value = case_when (
+  Force == as.factor('small') ~ abs(value - SMALL_FORCE),
+  Force == as.factor('large') ~  abs(value - LARGE_FORCE)
+   ) 
+  )  %>%
+  ungroup() -> df 
+df
+
+rf %>%
+  group_by(BPM) %>%
+  summarise(mean = mean(value), sd = sd(value))-> sum
+#data$bpm <- factor(data$bpm, levels = sort(unique(data$bpm)))
+sum
+ggplot(sum, aes(x = BPM , y = mean, fill= BPM, label = paste('  SD:', round(sd, digits = 4),      '   Mean:', round(mean, digits = 4)) )) +
+  geom_bar(position=position_dodge(), stat="identity")  +
+    geom_text(nudge_y = 0.005, size = 3) +
+    xlab("Beats Per Minute") + ylab("Mean Error (S)") 
+```
+
+
+
+## AOV Stats test
+
+```{r}
+
+rf
+one.way <- aov(value ~ BPM +Force, data = rf)
+
+summary(one.way)
+```
+
+
+
+
+
+## Average temporal coupling
+```{r}
+data <- "./part2/timing.csv" %>%
+  read_csv() %>%
+  mutate(bpm = as.factor(paste(BPM, 'BPM'))) %>%
+  mutate_if(is.character,as.factor)
+  
+
+data$bpm <- factor(data$bpm, levels=c('30 BPM','60 BPM','120 BPM'))
+
+data$bpm <- factor(data$bpm, levels = sort(unique(data$bpm)))
+
+
+
+df <- data %>%
+  select(c(BPM,Force,mean)) %>%
+  group_by(BPM,Force) %>%
+  summarise(mean = ave(mean), force= Force, BPM = BPM) %>% unique()
+
+
+ggplot(df, aes(x = BPM , y = mean, fill= BPM, label = BPM)) +
+  geom_bar(position=position_dodge(), stat="identity")  +
+    geom_text(nudge_y = 0.005, size = 3) +
+  facet_wrap(~Force, drop = FALSE, strip.position = 'bottom') +
+    xlab("Force Per Minute") + ylab("Mean error (s)")  +
+   theme( axis.text.x=element_blank(),
+        axis.ticks.x=element_blank())
+
+```
+
+
+
+## Average error for force coupling
+
+## RMS of Right vs Left
+```{r}
+data <- "./part2/force.csv" %>%
+  read_csv() %>%
+  mutate_if(is.character,as.factor) %>%
+  mutate(BPM = paste(BPM, 'BPM'))
+
+data$BPM <- factor(data$BPM, levels=c('30 BPM','60 BPM','120 BPM'))
+
+SMALL_FORCE <- 45
+LARGE_FORCE <- 145
+
+
+rf <- data %>% select(-c(Subject)) %>% pivot_longer(!Force & !BPM) %>%rowwise() %>% select(-name)
+rf
+# rf %>%  mutate(rms_err = case_when(
+#   Force == as.factor('small') ~ sqrt( sum( (c(f1,f2,f3,f4,f5) - SMALL_FORCE)**2)/ 5),
+#   Force == as.factor('large') ~ sqrt( sum( (c(f1,f2,f3,f4,f5) - LARGE_FORCE)**2)/ 5),
+#   TRUE ~ 5
+#   )) -> sum
+
+rf
+
+rf %>%  mutate(value = case_when (
+  Force == as.factor('small') ~ abs(value - SMALL_FORCE),
+  Force == as.factor('large') ~  abs(value - LARGE_FORCE)
+   ) 
+  )  %>%
+  ungroup() -> df 
+df
+
+df %>%
+  group_by(BPM) %>%
+  summarise(mean = mean(value), sd = sd(value))-> sum
+#data$bpm <- factor(data$bpm, levels = sort(unique(data$bpm)))
+sum
+ggplot(sum, aes(x = BPM , y = mean, fill= BPM, label = paste('  SD:', round(sd, digits = 4),      '   Mean:', round(mean, digits = 4)) )) +
+  geom_bar(position=position_dodge(), stat="identity")  +
+    geom_text(nudge_y = 1.015, size = 3) +
+    xlab("Beats Per Minute") + ylab("Mean Error (N)") 
+```
+
+
+
+## AOV Stats test
+
+```{r}
+df
+one.way <- aov(value ~ BPM, data = df)
+
+summary(one.way)
+```
+
+
+
+## Two tailed test comparing small force and large force for force coupling
+```{r}
+data <- "./part2/force.csv" %>% read_csv() %>%
+  mutate_if(is.character,as.factor) %>% 
+  select(-c(BPM, Subject))
+
+
+SMALL_FORCE <- 45
+LARGE_FORCE <- 145
+
+
+
+df <- data %>%
+  pivot_longer(!Force) %>%
+  select(-name)
+
+df
+
+test <- df %>% rowwise() %>%
+  mutate( value =
+    case_when(
+       Force == as.factor('small')  ~ abs(value - SMALL_FORCE),
+       Force == as.factor('large') ~ abs(value - LARGE_FORCE)
+    )
+  )
+
+
+sum <- test %>% group_by(Force ) %>% summarise(mean = mean(value), sd = sd(value))
+sum
+
+pivot <- test %>%
+  pivot_wider(names_from = Force, values_from = value) %>%
+  unnest()
+pivot 
+
+res <- t.test(pivot$small, pivot$large, paired = TRUE, alternative = "two.sided")
+pander(res)
+```
+
+
+
+
+
+## Precision in force timing compared to different forces
+
+```{r}
+sum
+
+ggplot(sum, aes(x = Force , y = mean, fill= Force, label = paste('  SD:', round(sd, digits = 4),      '   Mean:', round(mean, digits = 4)) )) +
+  geom_bar(position=position_dodge(), stat="identity")  +
+    geom_text(nudge_y = 1.35, nudge_x = 0.01, size = 3) +
+    geom_errorbar(aes(ymin=mean-sd, ymax=mean+sd), width=.2,
+                 position=position_dodge(.9)) +
+    xlab("Force") + ylab("Mean Error (N)") +
+    scale_color_viridis_b()
+
+```
+
+
+## Two tailed test comparing small force and large force for timing
+```{r}
+data <- "./part2/timing.csv" %>% read_csv() %>% mutate_if(is.character,as.factor)
+df <- data %>% 
+   select(-c(BPM, mean))
+df
+
+pivot <- df %>%
+  pivot_longer(cols = !Force & !Subject) %>%
+  select (-c(name, Subject)) %>%
+  pivot_wider(names_from = Force, values_from = value) %>%
+  unnest()
+pivot 
+pivot
+res <- t.test(pivot$small, pivot$large, paired = TRUE, alternative = "two.sided")
+pander(res)
+```
+
+## Precision in force timing compared to different forces
+
+```{r}
+df <- pivot %>% pivot_longer(cols = everything(),  names_to = "Force", values_to = "Error" ) %>%
+  group_by(Force) %>% summarise(mean = mean(Error), sd =sd(Error)) 
+df
+
+ggplot(df, aes(x = Force , y = mean, fill= Force, label = paste('S.D', round(sd, digits =3), '   Mean:' ,round(mean,digits = 3) ))) +
+  geom_bar(position=position_dodge(), stat="identity")  +
+    geom_text(nudge_y = 0.005, nudge_x = 0.01, size = 3) +
+    geom_errorbar(aes(ymin=mean-sd, ymax=mean+sd), width=.2,
+                 position=position_dodge(.9)) +
+    xlab("Force") + ylab("Mean Error (s)") +
+    scale_color_viridis_b()
+
+```
+
+
+

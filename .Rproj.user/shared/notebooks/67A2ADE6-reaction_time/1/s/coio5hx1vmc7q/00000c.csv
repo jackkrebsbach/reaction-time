@@ -1,0 +1,13 @@
+"0",""
+"0","res <- t.test(data$initial_rt, data$final_rt, paired = TRUE, alternative = 'greater')"
+"0","pander(res)"
+"1","
+----------------------------------------------------------------------------------
+ Test statistic   df   P value   Alternative hypothesis   mean of the differences 
+---------------- ---- --------- ------------------------ -------------------------
+     0.4899       4    0.3249           greater                   0.0084          
+----------------------------------------------------------------------------------
+
+Table: Paired t-test: `data$initial_rt` and `data$final_rt`
+
+"
