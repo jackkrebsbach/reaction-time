@@ -29,9 +29,7 @@ library(viridis)
 
 ## Define Standard Error Function:
 ```{r}
-
 std <- function(x) sd(x)/sqrt(length(x))
-
 ```
 
 
@@ -50,21 +48,24 @@ test <- data %>%
   
 df <- test %>%
   group_by(trial) %>%
-  summarise(mean = ave(reaction_time), std = std(reaction_time))   %>% unique()-> out
+  summarise(mean = ave(reaction_time), std = std(reaction_time)) %>%
+  unique()-> out
 
 
 ggplot(df, aes(x = trial , y = mean, fill= trial, label = paste0('\nAVG: ', round(mean, 3),"\n STD: ", round(std, 3), "\n"))) +
-  geom_bar(position=position_dodge(), stat="identity") +
+  geom_bar(position=position_dodge(), stat="identity")  +
+  scale_fill_discrete("Trial", 
+                      labels=c("Before Meditation", "After Meditation")) +
   geom_errorbar(aes(ymin=mean-std, ymax=mean+std, width=.5))  +
     geom_text(nudge_y = 0.05, size = 3) +
   # facet_wrap(~Force, drop = FALSE, strip.position = 'bottom') +
-    xlab("Trial (before vs after)") + ylab("Average Reaction Time")  +
+    xlab("Before and After Meditation") + ylab("Average Reaction Time (s)")  +
    theme( axis.text.x=element_blank(),
         axis.ticks.x=element_blank())
 ```
 
 
-# Two tailed Paired ttest for force tracking left and right
+# Two tailed paired ttest for meditation reaciton time
 ```{r}
 (data)
 
@@ -74,8 +75,7 @@ pander(res)
 
 
 
-
-## Meditation Analysis
+## Exercise Analysis
 ```{r}
 
 data <- "data/exercise.csv" %>%
@@ -95,29 +95,25 @@ df <- test %>%
 
 ggplot(df, aes(x = trial , y = mean, fill= trial, label = paste0('\nAVG: ', round(mean, 3),"\n STD: ", round(std, 3), "\n"))) +
   geom_bar(position=position_dodge(), stat="identity") +
+  scale_fill_discrete("Trial", 
+                      labels=c("Before Exercise", "After Exercise")) +
   geom_errorbar(aes(ymin=mean-std, ymax=mean+std, width=.5))  +
     geom_text(nudge_y = 0.05, size = 3) +
   # facet_wrap(~Force, drop = FALSE, strip.position = 'bottom') +
-    xlab("Trial (before vs after)") + ylab("Average Reaction Time")  +
+    xlab("Before and After Exercise") + ylab("Average Reaction Time (s)")  +
    theme( axis.text.x=element_blank(),
         axis.ticks.x=element_blank())
 ```
 
-
-
-
-# Two tailed Paired ttest for force tracking left and right
+## Two tailed Paired ttest for reaction time for exercise
 ```{r}
 (data)
-
 res <- t.test(data$initial_rt, data$final_rt, paired = TRUE, alternative = 'greater')
 pander(res)
 ```
 
 
-
-
-# Comparing groups
+## Comparing groups
 
 ```{r}
 ex <- "data/exercise.csv" %>%
