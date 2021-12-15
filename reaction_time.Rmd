@@ -29,7 +29,7 @@ library(viridis)
 
 ## Define Standard Error Function:
 ```{r}
-std <- function(x) sd(x)/sqrt(length(x))
+std <- function(x) sd(x) / sqrt(length(x))
 ```
 
 
@@ -46,16 +46,19 @@ test <- data %>%
   
 (test)
   
+
+test$trial <- factor(test$trial, levels = c("initial_rt", "final_rt"))
+
 df <- test %>%
   group_by(trial) %>%
   summarise(mean = ave(reaction_time), std = std(reaction_time)) %>%
-  unique()-> out
+  unique()
 
 
 ggplot(df, aes(x = trial , y = mean, fill= trial, label = paste0('\nAVG: ', round(mean, 3),"\n STD: ", round(std, 3), "\n"))) +
   geom_bar(position=position_dodge(), stat="identity")  +
   scale_fill_discrete("Trial", 
-                      labels=c("Before Meditation", "After Meditation")) +
+                      labels=c("After Meditation", "Before Meditation"), limits = rev) +
   geom_errorbar(aes(ymin=mean-std, ymax=mean+std, width=.5))  +
     geom_text(nudge_y = 0.05, size = 3) +
   # facet_wrap(~Force, drop = FALSE, strip.position = 'bottom') +
@@ -88,6 +91,8 @@ test <- data %>%
   
 (test)
   
+test$trial <- factor(test$trial, levels = c("initial_rt", "final_rt"))
+
 df <- test %>%
   group_by(trial) %>%
   summarise(mean = ave(reaction_time), std = std(reaction_time)) %>% unique()-> out
